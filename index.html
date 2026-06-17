@@ -289,6 +289,19 @@
     font-weight:600;
     color:var(--ink-soft);
   }
+  .present-toggle{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+  }
+  .present-toggle input[type="checkbox"]{
+    width:22px;
+    height:22px;
+    cursor:pointer;
+    accent-color:var(--field);
+  }
+  .present-toggle input[type="checkbox"]:disabled{cursor:not-allowed; opacity:0.4;}
 
   /* ---------- CONFLICT TICKER (signature element) ---------- */
   .ticker{
@@ -717,6 +730,66 @@
   }
   .rules-note b{color:var(--ink);}
 
+  /* ---------- COVERAGE CHECK (all 9 positions per inning) ---------- */
+  .coverage-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+    gap:12px;
+  }
+  .coverage-card{
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    background:var(--cream-dim);
+  }
+  .coverage-card.is-complete{border-color:var(--good); background:#E9F3EC;}
+  .coverage-card.is-missing{border-color:var(--red); background:var(--red-bg);}
+  .coverage-card-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:9px;
+  }
+  .coverage-card-title{
+    font-family:'Oswald', sans-serif;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:var(--field);
+  }
+  .coverage-status-icon{
+    font-size:15px;
+    font-weight:700;
+  }
+  .coverage-status-icon.ok{color:var(--good);}
+  .coverage-status-icon.bad{color:var(--red);}
+  .coverage-pos-list{
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+  }
+  .coverage-pos-chip{
+    font-family:'Inter Tight', sans-serif;
+    font-size:11px;
+    font-weight:700;
+    padding:3px 7px;
+    border-radius:5px;
+    background:var(--chalk);
+    border:1px solid var(--line);
+    color:var(--ink-soft);
+  }
+  .coverage-pos-chip.filled{
+    background:var(--good);
+    border-color:var(--good);
+    color:#fff;
+  }
+  .coverage-missing-text{
+    margin-top:8px;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--red);
+  }
+
   /* ---------- SHARE TO PHONE MODAL ---------- */
   .share-overlay{
     position:fixed;
@@ -887,6 +960,7 @@
         <table class="roster" id="rosterTable">
           <thead>
             <tr>
+              <th>Playing Today</th>
               <th>#</th>
               <th>Name</th>
               <th>Eligible Positions</th>
@@ -943,6 +1017,16 @@
         <span><span class="swatch" style="background:var(--red-bg); border:1px solid var(--red);"></span> Pitch/catch rule lockout</span>
         <span><span class="swatch" style="background:var(--cream); border:1.5px dashed var(--line);"></span> Bench this inning</span>
       </div>
+    </div>
+  </section>
+
+  <section class="panel" id="coveragePanel" style="display:none;">
+    <div class="panel-head">
+      <h2><span class="num">✓</span> Coverage Check — All 9 Positions</h2>
+      <p class="sub">Shows whether every defensive position is covered for each inning. A position is only "filled" if an active player (present today, eligible) is assigned to it.</p>
+    </div>
+    <div class="panel-body">
+      <div class="coverage-grid" id="coverageGrid"></div>
     </div>
   </section>
 
@@ -1102,6 +1186,8 @@
     pitcherSummary: document.getElementById('pitcherSummary'),
     sitPanel: document.getElementById('sitPanel'),
     sitBody: document.getElementById('sitBody'),
+    coveragePanel: document.getElementById('coveragePanel'),
+    coverageGrid: document.getElementById('coverageGrid'),
     dugoutModeBtn: document.getElementById('dugoutModeBtn'),
     exitDugoutBtn: document.getElementById('exitDugoutBtn'),
     undoBtn: document.getElementById('undoBtn'),
@@ -1159,11 +1245,20 @@
         number: number,
         positions: positions,
         eligible: eligible,
+        presentToday: true,
         tier: tier,
         leagueAge: leagueAge
       });
     }
     return out;
+  }
+
+  // A player is usable in today's lineup only if the roster marks them eligible
+  // AND the coach has them checked in as present for this game. The roster
+  // (name/number/positions/tier/league age) comes from the CSV and shouldn't
+  // need re-uploading just because someone is absent for a single game.
+  function isPlayerActive(p){
+    return p.eligible && p.presentToday !== false;
   }
 
   function splitCSVLine(line){
@@ -1282,6 +1377,7 @@
     runAllChecks();
     els.rosterPanel.style.display = 'block';
     els.lineupPanel.style.display = 'block';
+    els.coveragePanel.style.display = 'block';
     els.pitcherPanel.style.display = 'block';
     els.sitPanel.style.display = 'block';
   }
@@ -1342,6 +1438,7 @@
     refreshUndoButtons();
     els.rosterPanel.style.display = 'none';
     els.lineupPanel.style.display = 'none';
+    els.coveragePanel.style.display = 'none';
     els.pitcherPanel.style.display = 'none';
     els.sitPanel.style.display = 'none';
     els.rosterBody.innerHTML = '';
@@ -1352,9 +1449,28 @@
   // ---------- RENDER ROSTER ----------
   function renderRoster(){
     els.rosterBody.innerHTML = '';
-    roster.forEach(function(p){
+    roster.forEach(function(p, pIdx){
       var tr = document.createElement('tr');
-      if(!p.eligible) tr.style.opacity = '0.45';
+      var active = isPlayerActive(p);
+      if(!active) tr.style.opacity = '0.45';
+
+      var tdPresent = document.createElement('td');
+      var presentLabel = document.createElement('label');
+      presentLabel.className = 'present-toggle';
+      var presentCheckbox = document.createElement('input');
+      presentCheckbox.type = 'checkbox';
+      presentCheckbox.checked = (p.presentToday !== false);
+      presentCheckbox.disabled = !p.eligible;
+      presentCheckbox.dataset.player = pIdx;
+      presentCheckbox.addEventListener('change', function(e){
+        var idx = parseInt(e.target.dataset.player, 10);
+        snapshotForUndo();
+        roster[idx].presentToday = e.target.checked;
+        renderRoster();
+        renderLineup();
+      });
+      presentLabel.appendChild(presentCheckbox);
+      tdPresent.appendChild(presentLabel);
 
       var tdNum = document.createElement('td');
       var badge = document.createElement('span');
@@ -1363,7 +1479,13 @@
       tdNum.appendChild(badge);
 
       var tdName = document.createElement('td');
-      tdName.textContent = p.name + (p.eligible ? '' : '  (not eligible today)');
+      var nameNote = '';
+      if(!p.eligible){
+        nameNote = '  (marked ineligible in roster)';
+      } else if(p.presentToday === false){
+        nameNote = '  (out today)';
+      }
+      tdName.textContent = p.name + nameNote;
       tdName.style.fontWeight = '600';
 
       var tdPos = document.createElement('td');
@@ -1393,6 +1515,7 @@
         ? '<span class="age-chip">' + pitchLimitFor(p.leagueAge) + ' pitches/day</span>'
         : '<span class="age-chip" style="color:var(--line);">—</span>';
 
+      tr.appendChild(tdPresent);
       tr.appendChild(tdNum);
       tr.appendChild(tdName);
       tr.appendChild(tdPos);
@@ -1402,8 +1525,8 @@
       els.rosterBody.appendChild(tr);
     });
 
-    var eligibleCount = roster.filter(function(p){ return p.eligible; }).length;
-    els.rosterCountLabel.textContent = roster.length + ' players loaded · ' + eligibleCount + ' eligible today';
+    var activeCount = roster.filter(isPlayerActive).length;
+    els.rosterCountLabel.textContent = roster.length + ' players on roster · ' + activeCount + ' playing today';
   }
 
   // ---------- LINEUP GRID ----------
@@ -1493,10 +1616,10 @@
       sub.dataset.role = 'sub-' + pIdx;
       tdPlayer.appendChild(sub);
 
-      if(!p.eligible){
+      if(!isPlayerActive(p)){
         var note = document.createElement('div');
         note.className = 'player-sub';
-        note.innerHTML = '<span class="warn-text">Not eligible today</span>';
+        note.innerHTML = '<span class="warn-text">' + (!p.eligible ? 'Marked ineligible' : 'Out today') + '</span>';
         tdPlayer.appendChild(note);
       }
 
@@ -1526,7 +1649,7 @@
         });
 
         select.value = lineup[inn][pIdx] || 'BENCH';
-        select.disabled = !p.eligible;
+        select.disabled = !isPlayerActive(p);
 
         select.addEventListener('change', function(e){
           var pi = parseInt(e.target.dataset.player, 10);
@@ -1786,7 +1909,7 @@
 
       var select = document.createElement('select');
       select.className = 'dc-select' + (assignment === 'BENCH' ? ' s-bench' : '') + (isLocked ? ' s-locked' : ((isConflict || isIneligible) ? ' s-conflict' : ''));
-      select.disabled = !p.eligible;
+      select.disabled = !isPlayerActive(p);
       select.dataset.player = pIdx;
       select.dataset.inning = inn;
 
@@ -1817,10 +1940,10 @@
 
       card.appendChild(select);
 
-      if(!p.eligible){
+      if(!isPlayerActive(p)){
         var meta = document.createElement('div');
         meta.className = 'dc-meta';
-        meta.textContent = 'Not eligible today';
+        meta.textContent = !p.eligible ? 'Marked ineligible' : 'Out today';
         card.appendChild(meta);
       } else if(flagText){
         var meta2 = document.createElement('div');
@@ -1842,6 +1965,7 @@
     var lockMessages = applyLockoutsAndCollect();
     renderPitcherSummary();
     var sitMessages = renderSitTable();
+    renderCoverageCheck();
     updateTicker(posMessages.concat(lockMessages), sitMessages);
     if(els.dugoutPanel.style.display !== 'none'){
       renderDugoutMode();
@@ -2051,7 +2175,7 @@
     var messages = [];
 
     roster.forEach(function(p, pIdx){
-      if(!p.eligible) return;
+      if(!isPlayerActive(p)) return;
 
       var played = 0;
       var longestStreak = 0;
@@ -2110,7 +2234,63 @@
     return messages;
   }
 
-  // ---------- TICKER ----------
+  // ---------- COVERAGE CHECK: are all 9 positions filled each inning? ----------
+  function renderCoverageCheck(){
+    els.coverageGrid.innerHTML = '';
+    var messages = [];
+
+    for(var inn = 0; inn < INNINGS; inn++){
+      var filledPositions = {};
+      for(var i = 0; i < roster.length; i++){
+        var val = lineup[inn][i];
+        if(val !== 'BENCH' && isPlayerActive(roster[i])){
+          filledPositions[val] = true;
+        }
+      }
+
+      var missing = POSITIONS.filter(function(pos){ return !filledPositions[pos]; });
+      var isComplete = missing.length === 0;
+
+      var card = document.createElement('div');
+      card.className = 'coverage-card ' + (isComplete ? 'is-complete' : 'is-missing');
+
+      var head = document.createElement('div');
+      head.className = 'coverage-card-head';
+      var title = document.createElement('span');
+      title.className = 'coverage-card-title';
+      title.textContent = 'Inning ' + (inn + 1);
+      var icon = document.createElement('span');
+      icon.className = 'coverage-status-icon ' + (isComplete ? 'ok' : 'bad');
+      icon.textContent = isComplete ? '✓' : '!';
+      head.appendChild(title);
+      head.appendChild(icon);
+      card.appendChild(head);
+
+      var posList = document.createElement('div');
+      posList.className = 'coverage-pos-list';
+      POSITIONS.forEach(function(pos){
+        var chip = document.createElement('span');
+        chip.className = 'coverage-pos-chip' + (filledPositions[pos] ? ' filled' : '');
+        chip.textContent = pos;
+        posList.appendChild(chip);
+      });
+      card.appendChild(posList);
+
+      if(!isComplete){
+        var missingText = document.createElement('div');
+        missingText.className = 'coverage-missing-text';
+        missingText.textContent = 'Missing: ' + missing.join(', ');
+        card.appendChild(missingText);
+        messages.push('Inning ' + (inn + 1) + ' missing ' + missing.join('/'));
+      }
+
+      els.coverageGrid.appendChild(card);
+    }
+
+    return messages;
+  }
+
+
   function updateTicker(ruleMessages, sitMessages){
     if(roster.length === 0){
       els.ticker.className = 'ticker clear';
@@ -2142,7 +2322,7 @@
     lineup = buildEmptyLineup(roster.length);
     pitchCounts = buildEmptyPitchCounts(roster.length);
     var eligibleIdx = [];
-    roster.forEach(function(p, i){ if(p.eligible) eligibleIdx.push(i); });
+    roster.forEach(function(p, i){ if(isPlayerActive(p)) eligibleIdx.push(i); });
 
     var lastPitcher = -1;
 
