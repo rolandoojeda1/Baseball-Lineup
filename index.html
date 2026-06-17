@@ -1,0 +1,2326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Little League Lineup Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --field:#1F3D2B;
+    --field-dark:#15291D;
+    --cream:#FAF6EE;
+    --cream-dim:#F0E9D8;
+    --clay:#B5651D;
+    --clay-dark:#8F4E16;
+    --chalk:#FFFFFF;
+    --ink:#23291F;
+    --ink-soft:#5B6359;
+    --line:#D8CFB8;
+    --amber:#C9501C;
+    --amber-bg:#FBE8DB;
+    --red:#B3261E;
+    --red-bg:#FBE2DF;
+    --tier-1:#2E6F4E;
+    --tier-2:#3E7CB1;
+    --tier-3:#A1762E;
+    --good:#2E6F4E;
+    --shadow: 0 1px 0 rgba(0,0,0,0.04), 0 4px 12px rgba(31,61,43,0.07);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.4) 0px, rgba(255,255,255,0.4) 1px, transparent 1px, transparent 38px),
+      var(--cream);
+    color:var(--ink);
+    font-family:'Inter', system-ui, sans-serif;
+    font-size:15px;
+    line-height:1.45;
+    padding-bottom:80px;
+  }
+
+  /* ---------- HEADER / SCOREBOARD STRIP ---------- */
+  header.diamond-header{
+    background: linear-gradient(180deg, var(--field) 0%, var(--field-dark) 100%);
+    color:var(--cream);
+    padding:22px 28px 20px;
+    position:relative;
+    overflow:hidden;
+    border-bottom:6px solid var(--clay);
+  }
+  header.diamond-header::before{
+    content:"";
+    position:absolute;
+    right:-60px; top:-60px;
+    width:220px; height:220px;
+    border:3px solid rgba(255,255,255,0.06);
+    border-radius:50%;
+  }
+  header.diamond-header::after{
+    content:"";
+    position:absolute;
+    right:10px; top:30px;
+    width:120px; height:120px;
+    border:3px solid rgba(255,255,255,0.07);
+    border-radius:50%;
+  }
+  .header-row{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:24px;
+    flex-wrap:wrap;
+    position:relative;
+    z-index:1;
+  }
+  .title-block .eyebrow{
+    font-family:'Inter Tight', sans-serif;
+    font-weight:600;
+    font-size:11.5px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--clay);
+    margin:0 0 4px;
+  }
+  .title-block h1{
+    font-family:'Oswald', sans-serif;
+    font-weight:700;
+    font-size:32px;
+    letter-spacing:0.01em;
+    margin:0;
+    text-transform:uppercase;
+  }
+  .game-meta{
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .game-meta label{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:rgba(250,246,238,0.65);
+    font-weight:600;
+  }
+  .game-meta input{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.22);
+    color:var(--chalk);
+    border-radius:4px;
+    padding:7px 9px;
+    font-family:'Inter', sans-serif;
+    font-size:14px;
+    min-width:140px;
+  }
+  .game-meta input::placeholder{color:rgba(255,255,255,0.4);}
+  .game-meta input:focus{outline:2px solid var(--clay); outline-offset:1px;}
+
+  /* ---------- LAYOUT ---------- */
+  main{
+    max-width:1340px;
+    margin:0 auto;
+    padding:26px 28px 0;
+  }
+  .panel{
+    background:var(--chalk);
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow:var(--shadow);
+    margin-bottom:24px;
+  }
+  .panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:16px 20px;
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .panel-head h2{
+    font-family:'Oswald', sans-serif;
+    font-size:17px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    margin:0;
+    color:var(--field);
+    display:flex;
+    align-items:center;
+    gap:9px;
+  }
+  .panel-head h2 .num{
+    background:var(--field);
+    color:var(--cream);
+    font-size:12px;
+    font-family:'Inter Tight', sans-serif;
+    width:22px;height:22px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .panel-head p.sub{
+    margin:4px 0 0;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    width:100%;
+  }
+  .panel-body{padding:20px;}
+
+  /* ---------- UPLOAD ---------- */
+  .upload-zone{
+    border:2px dashed var(--line);
+    border-radius:8px;
+    padding:26px;
+    text-align:center;
+    background:var(--cream-dim);
+    transition:border-color .15s, background .15s;
+  }
+  .upload-zone.drag{
+    border-color:var(--clay);
+    background:var(--amber-bg);
+  }
+  .upload-zone p{margin:0 0 12px; color:var(--ink-soft); font-size:13.5px;}
+  .upload-zone .fmt{
+    font-family:'Inter Tight', monospace;
+    background:var(--cream);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:2px 7px;
+    font-size:12.5px;
+    color:var(--field);
+  }
+  .btn{
+    font-family:'Inter Tight', sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    border:none;
+    border-radius:6px;
+    padding:10px 18px;
+    cursor:pointer;
+    transition:transform .08s, filter .15s;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:var(--clay); color:var(--chalk);}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-ghost{background:transparent; color:var(--field); border:1.5px solid var(--field);}
+  .btn-ghost:hover{background:var(--field); color:var(--chalk);}
+  .btn-sm{padding:6px 12px; font-size:12.5px;}
+  .btn[disabled]{opacity:0.4; cursor:not-allowed;}
+  input[type="file"]{display:none;}
+
+  .upload-actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+
+  /* ---------- ROSTER TABLE ---------- */
+  table.roster{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+  }
+  table.roster th{
+    text-align:left;
+    font-family:'Inter Tight', sans-serif;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--ink-soft);
+    padding:8px 10px;
+    border-bottom:2px solid var(--line);
+  }
+  table.roster td{
+    padding:9px 10px;
+    border-bottom:1px solid var(--line);
+    vertical-align:middle;
+  }
+  table.roster tr:last-child td{border-bottom:none;}
+  .pill{
+    display:inline-block;
+    font-family:'Inter Tight', sans-serif;
+    font-size:11px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:20px;
+    color:#fff;
+    letter-spacing:0.02em;
+  }
+  .pos-chip{
+    display:inline-block;
+    font-size:11.5px;
+    font-family:'Inter Tight', sans-serif;
+    font-weight:600;
+    background:var(--cream-dim);
+    border:1px solid var(--line);
+    color:var(--field);
+    padding:2px 7px;
+    border-radius:4px;
+    margin:1px 2px 1px 0;
+  }
+  .num-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:26px; height:26px;
+    background:var(--field);
+    color:var(--cream);
+    border-radius:50%;
+    font-family:'Inter Tight', sans-serif;
+    font-weight:700;
+    font-size:12px;
+    flex-shrink:0;
+  }
+  .empty-state{
+    text-align:center;
+    padding:30px 10px;
+    color:var(--ink-soft);
+    font-size:13.5px;
+  }
+  .age-chip{
+    font-family:'Inter Tight', sans-serif;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+  }
+
+  /* ---------- CONFLICT TICKER (signature element) ---------- */
+  .ticker{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 20px;
+    font-family:'Inter Tight', sans-serif;
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:0.01em;
+    border-bottom:3px solid;
+    transition:background .2s, color .2s, border-color .2s;
+  }
+  .ticker.clear{
+    background:var(--field);
+    color:var(--cream);
+    border-color:var(--clay);
+  }
+  .ticker.warn{
+    background:var(--amber-bg);
+    color:#7A2E0E;
+    border-color:var(--amber);
+  }
+  .ticker.danger{
+    background:var(--red-bg);
+    color:#7A1410;
+    border-color:var(--red);
+  }
+  .ticker .flag{
+    font-size:15px;
+    flex-shrink:0;
+  }
+  .ticker .ticker-text{flex:1; min-width:0;}
+  .ticker .ticker-text b{font-weight:700;}
+
+  /* ---------- LINEUP GRID ---------- */
+  .grid-scroll{overflow-x:auto;}
+  table.lineup{
+    border-collapse:collapse;
+    width:100%;
+    min-width:980px;
+  }
+  table.lineup th, table.lineup td{
+    border:1px solid var(--line);
+    padding:0;
+  }
+  table.lineup thead th{
+    background:var(--field);
+    color:var(--cream);
+    font-family:'Oswald', sans-serif;
+    font-size:13px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:10px 8px;
+    text-align:center;
+  }
+  table.lineup thead th.player-col{
+    text-align:left;
+    min-width:185px;
+    position:sticky;
+    left:0;
+    z-index:11;
+  }
+  table.lineup td.player-cell{
+    position:sticky;
+    left:0;
+    background:var(--chalk);
+    z-index:5;
+    padding:8px 10px;
+    min-width:185px;
+    border-right:2px solid var(--line);
+    vertical-align:top;
+  }
+  table.lineup tbody tr:nth-child(even) td.player-cell{background:var(--cream-dim);}
+  table.lineup tbody tr.sit-warn td.player-cell{box-shadow:inset 3px 0 0 var(--red);}
+
+  .player-name-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .player-name-row .pname{
+    font-weight:600;
+    font-size:13.5px;
+  }
+  .player-sub{
+    font-size:10.5px;
+    color:var(--ink-soft);
+    margin-top:3px;
+    margin-left:34px;
+    line-height:1.5;
+  }
+  .player-sub .warn-text{color:var(--red); font-weight:600;}
+  .player-sub .ok-text{color:var(--good);}
+
+  td.slot-cell{
+    padding:5px;
+    min-width:112px;
+    vertical-align:top;
+  }
+  select.slot-select{
+    width:100%;
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:7px 6px;
+    border-radius:5px;
+    border:1.5px solid var(--line);
+    background:var(--chalk);
+    color:var(--ink);
+    cursor:pointer;
+  }
+  select.slot-select:focus{outline:2px solid var(--field); outline-offset:1px;}
+  select.slot-select:disabled{cursor:not-allowed; opacity:0.55;}
+  select.slot-select.s-bench{color:var(--ink-soft); border-style:dashed;}
+  select.slot-select.s-conflict{
+    border-color:var(--amber);
+    background:var(--amber-bg);
+    color:#7A2E0E;
+  }
+  select.slot-select.s-ineligible{
+    border-color:var(--amber);
+    background:repeating-linear-gradient(135deg, var(--amber-bg) 0 6px, #fff 6px 12px);
+  }
+  select.slot-select.s-locked{
+    border-color:var(--red);
+    background:var(--red-bg);
+    color:#7A1410;
+  }
+
+  .pitch-row td{background:var(--cream-dim); vertical-align:middle;}
+  .pitch-row td.player-cell{
+    background:var(--cream-dim) !important;
+    font-family:'Inter Tight', sans-serif;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+  }
+  .pitch-cell{padding:5px 5px;}
+  input.pitch-input{
+    width:100%;
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    text-align:center;
+    padding:6px 4px;
+    border-radius:5px;
+    border:1.5px solid var(--line);
+    background:var(--chalk);
+    color:var(--ink);
+  }
+  input.pitch-input:disabled{background:var(--cream-dim); color:var(--line); cursor:not-allowed;}
+  input.pitch-input:focus{outline:2px solid var(--field); outline-offset:1px;}
+  .pitch-who{
+    font-size:10px;
+    text-align:center;
+    color:var(--ink-soft);
+    padding:2px 0 4px;
+    font-weight:600;
+  }
+
+  .sit-flag{
+    display:inline-block;
+    font-size:10px;
+    font-weight:700;
+    padding:1px 6px;
+    border-radius:10px;
+    background:var(--red-bg);
+    color:var(--red);
+    margin-left:4px;
+  }
+
+  .legend{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    padding:14px 20px 18px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    border-top:1px solid var(--line);
+  }
+  .legend span{display:flex; align-items:center; gap:6px;}
+  .legend .swatch{width:12px; height:12px; border-radius:3px; display:inline-block;}
+
+  .tier-key{display:flex; gap:14px; flex-wrap:wrap; align-items:center;}
+  .tier-key .pill{font-size:10.5px;}
+
+  /* ---------- DUGOUT MODE (mobile inning-first view) ---------- */
+  .inning-switcher{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  .inning-arrow{
+    width:46px; height:46px;
+    border-radius:50%;
+    border:1.5px solid var(--field);
+    background:var(--chalk);
+    color:var(--field);
+    font-size:22px;
+    font-weight:700;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    transition:background .15s, color .15s;
+  }
+  .inning-arrow:active{background:var(--field); color:var(--cream);}
+  .inning-arrow:disabled{opacity:0.3; cursor:not-allowed;}
+  .inning-dots{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .inning-dot{
+    width:14px; height:14px;
+    border-radius:50%;
+    background:var(--line);
+    border:none;
+    cursor:pointer;
+    padding:0;
+  }
+  .inning-dot.active{background:var(--clay); width:30px; border-radius:7px;}
+  .inning-dot.has-issue{background:var(--red);}
+  .inning-dot.active.has-issue{background:var(--red);}
+
+  .inning-title{
+    font-family:'Oswald', sans-serif;
+    text-align:center;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    font-size:22px;
+    color:var(--field);
+    margin:8px 0 16px;
+  }
+
+  .pitcher-spotlight{
+    background:linear-gradient(135deg, var(--field) 0%, var(--field-dark) 100%);
+    border-radius:12px;
+    padding:16px 18px;
+    color:var(--cream);
+    margin-bottom:18px;
+  }
+  .pitcher-spotlight.empty{
+    background:var(--cream-dim);
+    color:var(--ink-soft);
+    text-align:center;
+    font-size:13.5px;
+    padding:18px;
+    border:1.5px dashed var(--line);
+  }
+  .ps-row{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .ps-label{
+    font-family:'Inter Tight', sans-serif;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    color:var(--clay);
+    font-weight:700;
+    margin-bottom:4px;
+  }
+  .ps-name{font-family:'Oswald', sans-serif; font-size:20px; text-transform:uppercase;}
+  .ps-count-wrap{display:flex; align-items:center; gap:10px;}
+  .ps-count{font-family:'Oswald', sans-serif; font-size:30px; font-weight:700;}
+  .ps-count.is-over{color:#FF8A75;}
+  .ps-count.is-near{color:#FFC98B;}
+  .ps-limit{font-size:13px; color:rgba(250,246,238,0.65);}
+  .ps-input-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:14px;
+    background:rgba(255,255,255,0.08);
+    border-radius:8px;
+    padding:10px 12px;
+  }
+  .ps-input-row label{font-size:12.5px; color:rgba(250,246,238,0.8); flex-shrink:0;}
+  .ps-pitch-input{
+    flex:1;
+    font-family:'Inter', sans-serif;
+    font-size:20px;
+    font-weight:700;
+    text-align:center;
+    padding:10px 8px;
+    border-radius:8px;
+    border:none;
+    background:var(--chalk);
+    color:var(--ink);
+    min-width:0;
+  }
+  .ps-warn{
+    margin-top:10px;
+    font-size:12.5px;
+    font-weight:600;
+    color:#FFB199;
+    background:rgba(0,0,0,0.18);
+    border-radius:6px;
+    padding:8px 10px;
+  }
+
+  .dugout-card-list{display:flex; flex-direction:column; gap:10px;}
+  .dugout-card{
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    background:var(--chalk);
+  }
+  .dugout-card.is-bench{background:var(--cream-dim);}
+  .dugout-card.has-flag{border-color:var(--red); background:var(--red-bg);}
+  .dc-top{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+  .dc-name{font-weight:700; font-size:15px; flex:1;}
+  .dc-flag-text{font-size:11px; font-weight:700; color:var(--red);}
+  .dc-select{
+    width:100%;
+    font-family:'Inter', sans-serif;
+    font-size:16px;
+    font-weight:600;
+    padding:11px 10px;
+    border-radius:8px;
+    border:1.5px solid var(--line);
+    background:var(--cream);
+    color:var(--ink);
+  }
+  .dc-select.s-bench{color:var(--ink-soft); border-style:dashed;}
+  .dc-select.s-conflict, .dc-select.s-ineligible{border-color:var(--amber); background:var(--amber-bg); color:#7A2E0E;}
+  .dc-select.s-locked{border-color:var(--red); background:var(--red-bg); color:#7A1410;}
+  .dc-meta{font-size:11.5px; color:var(--ink-soft); margin-top:6px;}
+
+  @media (min-width: 821px){
+    #dugoutModeBtn{display:none;}
+  }
+  @media (max-width: 820px){
+    #lineupTable, .grid-scroll, #lineupPanel .legend{display:none;}
+    #lineupPanel .panel-body{padding:18px;}
+  }
+
+  /* ---------- PITCHER SUMMARY PANEL ---------- */
+  .summary-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));
+    gap:12px;
+  }
+  .summary-card{
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    padding:12px 14px;
+    background:var(--cream-dim);
+  }
+  .summary-card.is-over{border-color:var(--red); background:var(--red-bg);}
+  .summary-card.is-near{border-color:var(--amber); background:var(--amber-bg);}
+  .summary-card .sc-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:6px;
+  }
+  .summary-card .sc-name{font-weight:700; font-size:13.5px;}
+  .summary-card .sc-count{
+    font-family:'Oswald', sans-serif;
+    font-size:18px;
+    font-weight:700;
+    color:var(--field);
+  }
+  .summary-card.is-over .sc-count{color:var(--red);}
+  .summary-card.is-near .sc-count{color:var(--amber);}
+  .summary-card .sc-bar{
+    height:6px;
+    background:var(--line);
+    border-radius:4px;
+    overflow:hidden;
+    margin-bottom:6px;
+  }
+  .summary-card .sc-bar-fill{height:100%; background:var(--good); border-radius:4px; transition:width .2s;}
+  .summary-card.is-near .sc-bar-fill{background:var(--amber);}
+  .summary-card.is-over .sc-bar-fill{background:var(--red);}
+  .summary-card .sc-note{font-size:11.5px; color:var(--ink-soft);}
+  .summary-card .sc-note b{color:var(--ink);}
+
+  .mandatory-table{width:100%; border-collapse:collapse; font-size:13px;}
+  .mandatory-table th{
+    text-align:left;
+    font-family:'Inter Tight', sans-serif;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--ink-soft);
+    padding:7px 10px;
+    border-bottom:2px solid var(--line);
+  }
+  .mandatory-table td{padding:7px 10px; border-bottom:1px solid var(--line);}
+  .mini-pill{
+    font-size:11px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:12px;
+    display:inline-block;
+  }
+  .mini-pill.ok{background:#E1EEE6; color:var(--good);}
+  .mini-pill.bad{background:var(--red-bg); color:var(--red);}
+
+  footer.note{
+    max-width:1340px;
+    margin:0 auto;
+    padding:6px 28px 30px;
+    color:var(--ink-soft);
+    font-size:12px;
+  }
+
+  .rules-note{
+    background:var(--cream-dim);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px 16px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-top:14px;
+  }
+  .rules-note b{color:var(--ink);}
+
+  /* ---------- SHARE TO PHONE MODAL ---------- */
+  .share-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(21,41,29,0.55);
+    z-index:200;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .share-modal{
+    background:var(--chalk);
+    border-radius:14px;
+    max-width:480px;
+    width:100%;
+    padding:22px 24px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.25);
+  }
+  .share-modal-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:6px;
+  }
+  .share-modal-head h3{
+    font-family:'Oswald', sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:var(--field);
+    font-size:19px;
+    margin:0;
+  }
+  .share-close-btn{
+    background:none;
+    border:none;
+    font-size:18px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    padding:4px 8px;
+    border-radius:6px;
+  }
+  .share-close-btn:hover{background:var(--cream-dim);}
+  .share-modal-sub{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin:0 0 14px;
+  }
+  .share-file-warning{
+    background:var(--amber-bg);
+    border:1.5px solid var(--amber);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:12.5px;
+    color:#7A4A1E;
+    margin-bottom:14px;
+  }
+  .share-link-textarea{
+    width:100%;
+    font-family:'Inter Tight', monospace;
+    font-size:11.5px;
+    color:var(--field);
+    background:var(--cream-dim);
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    resize:none;
+    word-break:break-all;
+    margin-bottom:12px;
+  }
+  .share-modal-actions{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:16px;
+  }
+  .share-copy-confirm{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--good);
+    opacity:0;
+    transition:opacity .15s;
+  }
+  .share-copy-confirm.show{opacity:1;}
+  .share-modal-howto{
+    background:var(--cream-dim);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:11px 14px;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .share-modal-howto b{color:var(--ink);}
+
+  @media (max-width: 720px){
+    header.diamond-header{padding:18px 18px 16px;}
+    .title-block h1{font-size:24px;}
+    main{padding:18px 14px 0;}
+    .panel-body{padding:14px;}
+    .panel-head{padding:14px 16px;}
+    .panel-head .btn{padding:9px 14px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+
+  @media print{
+    .ticker, .upload-zone, .panel-head button, #autoFillBtn, #resetGridBtn, #printBtn, #dugoutModeBtn, .legend, footer.note, #dugoutPanel{display:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="diamond-header">
+  <div class="header-row">
+    <div class="title-block">
+      <p class="eyebrow">Dugout Lineup Card</p>
+      <h1 id="teamNameDisplay">Little League Lineup Builder</h1>
+    </div>
+    <div class="game-meta">
+      <label>Team name
+        <input type="text" id="teamNameInput" placeholder="e.g. Tigers">
+      </label>
+      <label>Opponent
+        <input type="text" id="opponentInput" placeholder="e.g. Cubs">
+      </label>
+      <label>Game date
+        <input type="date" id="gameDateInput">
+      </label>
+    </div>
+  </div>
+</header>
+
+<div class="ticker clear" id="ticker">
+  <span class="flag">✓</span>
+  <span class="ticker-text">No lineup yet — upload your roster CSV below to get started.</span>
+</div>
+
+<main>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2><span class="num">1</span> Upload Roster</h2>
+      <span style="font-size:12px; color:var(--ink-soft);" id="rosterCountLabel"></span>
+      <p class="sub">Format: <span class="fmt" style="display:inline;">name,number,positions,eligible,tier,league_age</span> — league_age sets the daily pitch limit per SPLL Regulation VI(c).</p>
+    </div>
+    <div class="panel-body">
+      <div class="upload-zone" id="uploadZone">
+        <p>Drop your roster CSV here, or click to browse.<br>
+        Format: <span class="fmt">name,number,positions,eligible,tier,league_age</span></p>
+        <div class="upload-actions">
+          <button class="btn btn-primary" id="browseBtn">Choose CSV File</button>
+          <button class="btn btn-ghost" id="sampleBtn">Download Sample CSV</button>
+        </div>
+        <input type="file" id="csvFile" accept=".csv,text/csv">
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="rosterPanel" style="display:none;">
+    <div class="panel-head">
+      <h2><span class="num">2</span> Review Roster</h2>
+      <button class="btn btn-ghost btn-sm" id="clearRosterBtn">Clear Roster</button>
+    </div>
+    <div class="panel-body">
+      <div style="overflow-x:auto;">
+        <table class="roster" id="rosterTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Eligible Positions</th>
+              <th>Tier</th>
+              <th>League Age</th>
+              <th>Daily Pitch Limit</th>
+            </tr>
+          </thead>
+          <tbody id="rosterBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="lineupPanel" style="display:none;">
+    <div class="panel-head">
+      <h2><span class="num">3</span> Set Your Lineup — 6 Innings</h2>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" id="undoBtn" disabled>↶ Undo</button>
+        <button class="btn btn-ghost btn-sm" id="autoFillBtn">Auto-Fill Suggestion</button>
+        <button class="btn btn-ghost btn-sm" id="resetGridBtn">Reset Grid</button>
+        <button class="btn btn-primary btn-sm" id="printBtn">Print / Save Card</button>
+        <button class="btn btn-primary btn-sm" id="shareToPhoneBtn">📲 Share to Phone</button>
+        <button class="btn btn-primary btn-sm" id="dugoutModeBtn">📱 Dugout Mode</button>
+      </div>
+      <p class="sub">Enter pitch counts in the gold row as the game goes — pitcher/catcher lockouts and pitch limits update live below the grid. Continuous batting means every player is guaranteed an at-bat, so this tool tracks defensive innings and the sit rule only.</p>
+    </div>
+    <div class="panel-body" style="padding:0;">
+      <div class="grid-scroll">
+        <table class="lineup" id="lineupTable">
+          <thead>
+            <tr>
+              <th class="player-col">Player</th>
+              <th>Inning 1</th>
+              <th>Inning 2</th>
+              <th>Inning 3</th>
+              <th>Inning 4</th>
+              <th>Inning 5</th>
+              <th>Inning 6</th>
+            </tr>
+          </thead>
+          <tbody id="lineupBody"></tbody>
+          <tfoot id="pitchFoot"></tfoot>
+        </table>
+      </div>
+      <div class="legend">
+        <div class="tier-key">
+          <span style="color:var(--ink-soft); font-weight:600;">Tier:</span>
+          <span class="pill" style="background:var(--tier-1);">1</span>
+          <span class="pill" style="background:var(--tier-2);">2</span>
+          <span class="pill" style="background:var(--tier-3);">3</span>
+        </div>
+        <span><span class="swatch" style="background:var(--amber-bg); border:1px solid var(--amber);"></span> Conflict or ineligible position</span>
+        <span><span class="swatch" style="background:var(--red-bg); border:1px solid var(--red);"></span> Pitch/catch rule lockout</span>
+        <span><span class="swatch" style="background:var(--cream); border:1.5px dashed var(--line);"></span> Bench this inning</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="dugoutPanel" style="display:none;">
+    <div class="panel-head">
+      <h2><span class="num">📱</span> Dugout Mode</h2>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-ghost btn-sm" id="dugoutUndoBtn" disabled>↶ Undo</button>
+        <button class="btn btn-ghost btn-sm" id="exitDugoutBtn">Exit to Full Grid</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="inning-switcher">
+        <button class="inning-arrow" id="prevInningBtn" aria-label="Previous inning">‹</button>
+        <div class="inning-dots" id="inningDots"></div>
+        <button class="inning-arrow" id="nextInningBtn" aria-label="Next inning">›</button>
+      </div>
+      <h3 class="inning-title" id="inningTitle">Inning 1</h3>
+
+      <div class="pitcher-spotlight" id="pitcherSpotlight"></div>
+
+      <div class="dugout-card-list" id="dugoutCardList"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="pitcherPanel" style="display:none;">
+    <div class="panel-head">
+      <h2><span class="num">4</span> Pitch Count &amp; Rest Tracker</h2>
+    </div>
+    <div class="panel-body">
+      <div class="summary-grid" id="pitcherSummary"></div>
+      <div class="rules-note">
+        <b>Rest days owed after today (SPLL Regulation VI(d)):</b> 1–20 pitches → 0 days · 21–35 → 1 day · 36–50 → 2 days · 51–65 → 3 days · 66+ → 4 days. A pitcher can never throw on 3 consecutive calendar days. This tool only tracks the current game — note these rest requirements yourself for upcoming games, since pitch history isn't saved between sessions.
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="sitPanel" style="display:none;">
+    <div class="panel-head">
+      <h2><span class="num">5</span> Sit-Rule Check</h2>
+      <p class="sub">SPLL local rule: no player may sit more than one consecutive half-inning. This tracks bench streaks at the full-inning level — verify manually if you're benching mid-inning for substitutions.</p>
+    </div>
+    <div class="panel-body">
+      <table class="mandatory-table" id="sitTable">
+        <thead>
+          <tr><th>Player</th><th>Defensive Innings Played</th><th>Longest Bench Streak</th><th>Status</th></tr>
+        </thead>
+        <tbody id="sitBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<div class="share-overlay" id="shareOverlay" style="display:none;">
+  <div class="share-modal">
+    <div class="share-modal-head">
+      <h3>Share to Phone</h3>
+      <button class="share-close-btn" id="shareCloseBtn" aria-label="Close">✕</button>
+    </div>
+    <p class="share-modal-sub">This link carries your full lineup — roster, positions, and pitch counts. Open it on your phone's Safari and it loads everything automatically, no attachments needed.</p>
+    <div class="share-file-warning" id="shareFileWarning" style="display:none;">
+      ⚠ This page is currently open from a local file, not a real web address — this link will only work on this same computer. Host this file online (e.g. GitHub Pages) for a link that works on your phone.
+    </div>
+    <textarea id="shareLinkText" class="share-link-textarea" readonly rows="3"></textarea>
+    <div class="share-modal-actions">
+      <button class="btn btn-primary btn-sm" id="copyShareLinkBtn">Copy Link</button>
+      <span class="share-copy-confirm" id="shareCopyConfirm">Copied!</span>
+    </div>
+    <div class="share-modal-howto">
+      <b>On your phone:</b> text or AirDrop yourself this link (not a file), then tap it — it opens straight in Safari as a normal webpage, so there's no attachment to save and no "Open in..." menu to fight with.
+    </div>
+  </div>
+</div>
+
+<footer class="note">
+  Saved automatically in this browser tab while you work. Use <b>Print / Save Card</b> to get a clean printable lineup for the dugout. Pitch-count and lockout logic follows South Pasadena Little League Regulation VI and the local sit rule as of the 2025 rules sheet — always double-check live with your scorekeeper and umpire.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var POSITIONS = ["P","C","1B","2B","3B","SS","LF","CF","RF"];
+  var INNINGS = 6;
+  var TIER_COLORS = {"1":"var(--tier-1)","2":"var(--tier-2)","3":"var(--tier-3)"};
+
+  // SPLL Regulation VI(c) daily pitch limits by league age
+  var PITCH_LIMITS = {
+    "6":50, "7":50, "8":50,
+    "9":75, "10":75,
+    "11":85, "12":85,
+    "13":95, "14":95, "15":95, "16":95
+  };
+  function pitchLimitFor(age){
+    var n = parseInt(age, 10);
+    if(PITCH_LIMITS[String(n)]) return PITCH_LIMITS[String(n)];
+    if(n <= 8) return 50;
+    if(n <= 10) return 75;
+    if(n <= 12) return 85;
+    return 95;
+  }
+
+  var roster = [];          // {name, number, positions:[...], eligible, tier, leagueAge}
+  var lineup = [];          // lineup[inningIndex][playerIdx] = position string or "BENCH"
+  var pitchCounts = [];     // pitchCounts[inningIndex][playerIdx] = number thrown that inning (only meaningful if assigned P)
+  var undoStack = [];       // snapshots of {lineup, pitchCounts} taken before each mutation, most recent last
+  var UNDO_LIMIT = 25;
+
+  function snapshotForUndo(){
+    undoStack.push({
+      lineup: JSON.parse(JSON.stringify(lineup)),
+      pitchCounts: JSON.parse(JSON.stringify(pitchCounts))
+    });
+    if(undoStack.length > UNDO_LIMIT) undoStack.shift();
+    refreshUndoButtons();
+  }
+
+  function performUndo(){
+    if(undoStack.length === 0) return;
+    var prev = undoStack.pop();
+    lineup = prev.lineup;
+    pitchCounts = prev.pitchCounts;
+    refreshUndoButtons();
+    renderLineup();
+    renderDugoutMode();
+  }
+
+  function refreshUndoButtons(){
+    var hasHistory = undoStack.length > 0;
+    if(els.undoBtn) els.undoBtn.disabled = !hasHistory;
+    if(els.dugoutUndoBtn) els.dugoutUndoBtn.disabled = !hasHistory;
+  }
+
+
+  var els = {
+    uploadZone: document.getElementById('uploadZone'),
+    browseBtn: document.getElementById('browseBtn'),
+    sampleBtn: document.getElementById('sampleBtn'),
+    csvFile: document.getElementById('csvFile'),
+    rosterPanel: document.getElementById('rosterPanel'),
+    rosterBody: document.getElementById('rosterBody'),
+    rosterCountLabel: document.getElementById('rosterCountLabel'),
+    clearRosterBtn: document.getElementById('clearRosterBtn'),
+    lineupPanel: document.getElementById('lineupPanel'),
+    lineupBody: document.getElementById('lineupBody'),
+    pitchFoot: document.getElementById('pitchFoot'),
+    ticker: document.getElementById('ticker'),
+    autoFillBtn: document.getElementById('autoFillBtn'),
+    resetGridBtn: document.getElementById('resetGridBtn'),
+    printBtn: document.getElementById('printBtn'),
+    teamNameInput: document.getElementById('teamNameInput'),
+    teamNameDisplay: document.getElementById('teamNameDisplay'),
+    opponentInput: document.getElementById('opponentInput'),
+    gameDateInput: document.getElementById('gameDateInput'),
+    pitcherPanel: document.getElementById('pitcherPanel'),
+    pitcherSummary: document.getElementById('pitcherSummary'),
+    sitPanel: document.getElementById('sitPanel'),
+    sitBody: document.getElementById('sitBody'),
+    dugoutModeBtn: document.getElementById('dugoutModeBtn'),
+    exitDugoutBtn: document.getElementById('exitDugoutBtn'),
+    undoBtn: document.getElementById('undoBtn'),
+    dugoutUndoBtn: document.getElementById('dugoutUndoBtn'),
+    shareToPhoneBtn: document.getElementById('shareToPhoneBtn'),
+    shareOverlay: document.getElementById('shareOverlay'),
+    shareCloseBtn: document.getElementById('shareCloseBtn'),
+    shareLinkText: document.getElementById('shareLinkText'),
+    shareFileWarning: document.getElementById('shareFileWarning'),
+    copyShareLinkBtn: document.getElementById('copyShareLinkBtn'),
+    shareCopyConfirm: document.getElementById('shareCopyConfirm'),
+    dugoutPanel: document.getElementById('dugoutPanel'),
+    inningDots: document.getElementById('inningDots'),
+    inningTitle: document.getElementById('inningTitle'),
+    prevInningBtn: document.getElementById('prevInningBtn'),
+    nextInningBtn: document.getElementById('nextInningBtn'),
+    pitcherSpotlight: document.getElementById('pitcherSpotlight'),
+    dugoutCardList: document.getElementById('dugoutCardList')
+  };
+
+  var currentDugoutInning = 0;
+  var spotlightEditSnapshotted = false;
+
+  // ---------- CSV PARSING ----------
+  function parseCSV(text){
+    var lines = text.split(/\r?\n/).filter(function(l){ return l.trim().length > 0; });
+    if(lines.length === 0) return [];
+
+    var header = lines[0].toLowerCase();
+    var startIdx = 0;
+    if(header.indexOf('name') !== -1 && header.indexOf('number') !== -1){
+      startIdx = 1;
+    }
+
+    var out = [];
+    for(var i = startIdx; i < lines.length; i++){
+      var raw = lines[i];
+      var cols = splitCSVLine(raw);
+      if(cols.length < 5) continue;
+
+      var name = cols[0].trim();
+      var number = cols[1].trim();
+      var positions = cols[2].split(/[;|]/).map(function(p){ return p.trim().toUpperCase(); }).filter(Boolean);
+      var eligibleRaw = cols[3].trim().toLowerCase();
+      var eligible = !(eligibleRaw === 'false' || eligibleRaw === 'no' || eligibleRaw === '0' || eligibleRaw === 'n');
+      var tier = cols[4].trim();
+      if(['1','2','3'].indexOf(tier) === -1) tier = '2';
+      var leagueAge = cols.length >= 6 ? cols[5].trim() : '';
+      if(!leagueAge || isNaN(parseInt(leagueAge,10))) leagueAge = '10'; // National default per this team's context
+
+      if(!name) continue;
+
+      out.push({
+        name: name,
+        number: number,
+        positions: positions,
+        eligible: eligible,
+        tier: tier,
+        leagueAge: leagueAge
+      });
+    }
+    return out;
+  }
+
+  function splitCSVLine(line){
+    var result = [];
+    var cur = '';
+    var inQuotes = false;
+    for(var i = 0; i < line.length; i++){
+      var ch = line[i];
+      if(ch === '"'){
+        inQuotes = !inQuotes;
+      } else if(ch === ',' && !inQuotes){
+        result.push(cur);
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    result.push(cur);
+    return result;
+  }
+
+  // ---------- SAMPLE CSV ----------
+  function downloadSample(){
+    var sample = "name,number,positions,eligible,tier,league_age\n" +
+      "Avery Chen,7,P;1B;OF,true,1,10\n" +
+      "Jordan Smith,12,C;3B,true,2,10\n" +
+      "Mia Ramirez,3,SS;2B;P,true,1,9\n" +
+      "Liam Patel,9,OF;1B,true,3,10\n" +
+      "Sofia Nguyen,21,2B;SS;OF,true,2,9\n" +
+      "Eli Thompson,4,C;1B,true,3,10\n" +
+      "Grace Kim,15,OF;3B,true,2,9\n" +
+      "Noah Garcia,8,P;OF,false,1,10\n" +
+      "Zoe Martinez,18,SS;3B;2B,true,1,10\n" +
+      "Caleb Brooks,2,OF;C,true,3,9\n";
+    var blob = new Blob([sample], {type: 'text/csv'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample_roster.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- HANDLE UPLOAD ----------
+  // ---------- SHARE LINK / CODE: export and import full game state ----------
+  function buildGameStatePayload(){
+    return {
+      v: 1,
+      team: els.teamNameInput.value || '',
+      opponent: els.opponentInput.value || '',
+      date: els.gameDateInput.value || '',
+      roster: roster,
+      lineup: lineup,
+      pitchCounts: pitchCounts
+    };
+  }
+
+  function encodeGameState(payload){
+    var json = JSON.stringify(payload);
+    // unicode-safe base64
+    var b64 = btoa(unescape(encodeURIComponent(json)));
+    // make URL-safe
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function decodeGameState(code){
+    var b64 = code.replace(/-/g, '+').replace(/_/g, '/');
+    while(b64.length % 4 !== 0) b64 += '=';
+    var json = decodeURIComponent(escape(atob(b64)));
+    return JSON.parse(json);
+  }
+
+  function applyGameStatePayload(payload){
+    if(!payload || !payload.roster || !Array.isArray(payload.roster)){
+      throw new Error('Missing or invalid roster data');
+    }
+    roster = payload.roster;
+    lineup = payload.lineup && Array.isArray(payload.lineup) ? payload.lineup : buildEmptyLineup(roster.length);
+    pitchCounts = payload.pitchCounts && Array.isArray(payload.pitchCounts) ? payload.pitchCounts : buildEmptyPitchCounts(roster.length);
+    els.teamNameInput.value = payload.team || '';
+    els.opponentInput.value = payload.opponent || '';
+    els.gameDateInput.value = payload.date || '';
+    var v = (payload.team || '').trim();
+    els.teamNameDisplay.textContent = v ? (v + ' Lineup Card') : 'Little League Lineup Builder';
+    activateLoadedGame();
+  }
+
+  function currentShareUrl(){
+    var payload = buildGameStatePayload();
+    var code = encodeGameState(payload);
+    var base = window.location.href.split('#')[0];
+    return base + '#lineup=' + code;
+  }
+
+  function checkUrlForSharedLineup(){
+    var hash = window.location.hash || '';
+    var match = hash.match(/lineup=([^&]+)/);
+    if(!match) return false;
+    try{
+      var payload = decodeGameState(match[1]);
+      applyGameStatePayload(payload);
+      return true;
+    } catch(err){
+      alert('That share link looks incomplete or corrupted — try generating a fresh one.');
+      return false;
+    }
+  }
+
+  function activateLoadedGame(){
+    undoStack = [];
+    refreshUndoButtons();
+    renderRoster();
+    renderLineup();
+    runAllChecks();
+    els.rosterPanel.style.display = 'block';
+    els.lineupPanel.style.display = 'block';
+    els.pitcherPanel.style.display = 'block';
+    els.sitPanel.style.display = 'block';
+  }
+
+  function handleFile(file){
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var parsed = parseCSV(e.target.result);
+      if(parsed.length === 0){
+        alert("Couldn't find any valid rows. Check that your CSV matches: name,number,positions,eligible,tier,league_age");
+        return;
+      }
+      roster = parsed;
+      lineup = buildEmptyLineup(roster.length);
+      pitchCounts = buildEmptyPitchCounts(roster.length);
+      activateLoadedGame();
+    };
+    reader.onerror = function(){
+      alert("There was a problem reading that file. Please try again.");
+    };
+    reader.readAsText(file);
+  }
+
+  els.browseBtn.addEventListener('click', function(){ els.csvFile.click(); });
+  els.sampleBtn.addEventListener('click', downloadSample);
+  els.csvFile.addEventListener('change', function(e){
+    handleFile(e.target.files[0]);
+  });
+
+  ['dragenter','dragover'].forEach(function(evt){
+    els.uploadZone.addEventListener(evt, function(e){
+      e.preventDefault();
+      els.uploadZone.classList.add('drag');
+    });
+  });
+  ['dragleave','drop'].forEach(function(evt){
+    els.uploadZone.addEventListener(evt, function(e){
+      e.preventDefault();
+      els.uploadZone.classList.remove('drag');
+    });
+  });
+  els.uploadZone.addEventListener('drop', function(e){
+    var file = e.dataTransfer.files[0];
+    handleFile(file);
+  });
+  els.uploadZone.addEventListener('click', function(e){
+    if(e.target === els.browseBtn || e.target === els.sampleBtn) return;
+    els.csvFile.click();
+  });
+
+  els.clearRosterBtn.addEventListener('click', function(){
+    if(!confirm('Clear the entire roster and lineup? This cannot be undone.')) return;
+    roster = [];
+    lineup = [];
+    pitchCounts = [];
+    undoStack = [];
+    refreshUndoButtons();
+    els.rosterPanel.style.display = 'none';
+    els.lineupPanel.style.display = 'none';
+    els.pitcherPanel.style.display = 'none';
+    els.sitPanel.style.display = 'none';
+    els.rosterBody.innerHTML = '';
+    els.lineupBody.innerHTML = '';
+    updateTicker([], []);
+  });
+
+  // ---------- RENDER ROSTER ----------
+  function renderRoster(){
+    els.rosterBody.innerHTML = '';
+    roster.forEach(function(p){
+      var tr = document.createElement('tr');
+      if(!p.eligible) tr.style.opacity = '0.45';
+
+      var tdNum = document.createElement('td');
+      var badge = document.createElement('span');
+      badge.className = 'num-badge';
+      badge.textContent = p.number || '–';
+      tdNum.appendChild(badge);
+
+      var tdName = document.createElement('td');
+      tdName.textContent = p.name + (p.eligible ? '' : '  (not eligible today)');
+      tdName.style.fontWeight = '600';
+
+      var tdPos = document.createElement('td');
+      p.positions.forEach(function(pos){
+        var chip = document.createElement('span');
+        chip.className = 'pos-chip';
+        chip.textContent = pos;
+        tdPos.appendChild(chip);
+      });
+      if(p.positions.length === 0){
+        tdPos.innerHTML = '<span style="color:var(--ink-soft); font-size:12.5px;">No positions listed</span>';
+      }
+
+      var tdTier = document.createElement('td');
+      var pill = document.createElement('span');
+      pill.className = 'pill';
+      pill.style.background = TIER_COLORS[p.tier] || 'var(--tier-2)';
+      pill.textContent = 'Tier ' + p.tier;
+      tdTier.appendChild(pill);
+
+      var tdAge = document.createElement('td');
+      tdAge.innerHTML = '<span class="age-chip">' + p.leagueAge + '</span>';
+
+      var tdLimit = document.createElement('td');
+      var isPitcherEligible = p.positions.indexOf('P') !== -1;
+      tdLimit.innerHTML = isPitcherEligible
+        ? '<span class="age-chip">' + pitchLimitFor(p.leagueAge) + ' pitches/day</span>'
+        : '<span class="age-chip" style="color:var(--line);">—</span>';
+
+      tr.appendChild(tdNum);
+      tr.appendChild(tdName);
+      tr.appendChild(tdPos);
+      tr.appendChild(tdTier);
+      tr.appendChild(tdAge);
+      tr.appendChild(tdLimit);
+      els.rosterBody.appendChild(tr);
+    });
+
+    var eligibleCount = roster.filter(function(p){ return p.eligible; }).length;
+    els.rosterCountLabel.textContent = roster.length + ' players loaded · ' + eligibleCount + ' eligible today';
+  }
+
+  // ---------- LINEUP GRID ----------
+  function buildEmptyLineup(playerCount){
+    var grid = [];
+    for(var i = 0; i < INNINGS; i++){
+      var inningAssign = [];
+      for(var j = 0; j < playerCount; j++) inningAssign.push('BENCH');
+      grid.push(inningAssign);
+    }
+    return grid;
+  }
+
+  function buildEmptyPitchCounts(playerCount){
+    var grid = [];
+    for(var i = 0; i < INNINGS; i++){
+      var row = [];
+      for(var j = 0; j < playerCount; j++) row.push(0);
+      grid.push(row);
+    }
+    return grid;
+  }
+
+  // ----- derived state helpers -----
+
+  // Innings caught up to (and optionally including) a given inning index
+  function inningsCaughtBefore(pIdx, uptoInningExclusive){
+    var c = 0;
+    for(var k = 0; k < uptoInningExclusive; k++){
+      if(lineup[k][pIdx] === 'C') c++;
+    }
+    return c;
+  }
+  function inningsCaughtTotal(pIdx){
+    return inningsCaughtBefore(pIdx, INNINGS);
+  }
+
+  // Total pitches thrown up to (exclusive of) a given inning
+  function pitchesBefore(pIdx, uptoInningExclusive){
+    var total = 0;
+    for(var k = 0; k < uptoInningExclusive; k++){
+      if(lineup[k][pIdx] === 'P'){
+        total += (pitchCounts[k][pIdx] || 0);
+      }
+    }
+    return total;
+  }
+  function pitchesTotal(pIdx){
+    return pitchesBefore(pIdx, INNINGS);
+  }
+
+  // Has this player been removed from the mound before inning `inn` (pitched earlier, not pitching now/continuing)?
+  function pitchedInAnyEarlierInning(pIdx, inn){
+    for(var k = 0; k < inn; k++){
+      if(lineup[k][pIdx] === 'P') return true;
+    }
+    return false;
+  }
+  // Is the player currently in a "still on the mound" streak ending at inning `inn` (inclusive), i.e. pitched every inning from some start through inn?
+  function isContinuousPitchingThrough(pIdx, inn){
+    return lineup[inn][pIdx] === 'P';
+  }
+
+  function renderLineup(){
+    els.lineupBody.innerHTML = '';
+
+    roster.forEach(function(p, pIdx){
+      var tr = document.createElement('tr');
+
+      var tdPlayer = document.createElement('td');
+      tdPlayer.className = 'player-cell';
+      var row = document.createElement('div');
+      row.className = 'player-name-row';
+      var badge = document.createElement('span');
+      badge.className = 'num-badge';
+      badge.style.background = TIER_COLORS[p.tier] || 'var(--field)';
+      badge.textContent = p.number || '–';
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'pname';
+      nameSpan.textContent = p.name;
+      row.appendChild(badge);
+      row.appendChild(nameSpan);
+      tdPlayer.appendChild(row);
+
+      var sub = document.createElement('div');
+      sub.className = 'player-sub';
+      sub.dataset.role = 'sub-' + pIdx;
+      tdPlayer.appendChild(sub);
+
+      if(!p.eligible){
+        var note = document.createElement('div');
+        note.className = 'player-sub';
+        note.innerHTML = '<span class="warn-text">Not eligible today</span>';
+        tdPlayer.appendChild(note);
+      }
+
+      tr.appendChild(tdPlayer);
+
+      for(var inn = 0; inn < INNINGS; inn++){
+        var td = document.createElement('td');
+        td.className = 'slot-cell';
+        var select = document.createElement('select');
+        select.className = 'slot-select';
+        select.dataset.player = pIdx;
+        select.dataset.inning = inn;
+
+        var benchOpt = document.createElement('option');
+        benchOpt.value = 'BENCH';
+        benchOpt.textContent = 'Bench';
+        select.appendChild(benchOpt);
+
+        POSITIONS.forEach(function(pos){
+          var opt = document.createElement('option');
+          opt.value = pos;
+          opt.textContent = pos;
+          if(p.positions.indexOf(pos) === -1){
+            opt.textContent = pos + ' ⚠';
+          }
+          select.appendChild(opt);
+        });
+
+        select.value = lineup[inn][pIdx] || 'BENCH';
+        select.disabled = !p.eligible;
+
+        select.addEventListener('change', function(e){
+          var pi = parseInt(e.target.dataset.player, 10);
+          var ii = parseInt(e.target.dataset.inning, 10);
+          snapshotForUndo();
+          lineup[ii][pi] = e.target.value;
+          if(e.target.value !== 'P'){
+            pitchCounts[ii][pi] = 0;
+          }
+          renderPitchRow();
+          runAllChecks();
+        });
+
+        td.appendChild(select);
+        tr.appendChild(td);
+      }
+
+      els.lineupBody.appendChild(tr);
+    });
+
+    renderPitchRow();
+    runAllChecks();
+  }
+
+  // ---------- PITCH COUNT ROW (tfoot) ----------
+  function renderPitchRow(){
+    els.pitchFoot.innerHTML = '';
+    var tr = document.createElement('tr');
+    tr.className = 'pitch-row';
+
+    var tdLabel = document.createElement('td');
+    tdLabel.className = 'player-cell';
+    tdLabel.textContent = 'Pitches thrown';
+    tr.appendChild(tdLabel);
+
+    for(var inn = 0; inn < INNINGS; inn++){
+      var td = document.createElement('td');
+      td.className = 'pitch-cell';
+
+      // find who is pitching this inning
+      var pitcherIdx = -1;
+      for(var i = 0; i < roster.length; i++){
+        if(lineup[inn][i] === 'P'){ pitcherIdx = i; break; }
+      }
+
+      if(pitcherIdx === -1){
+        var emptyDiv = document.createElement('div');
+        emptyDiv.style.textAlign = 'center';
+        emptyDiv.style.color = 'var(--line)';
+        emptyDiv.style.fontSize = '12px';
+        emptyDiv.style.padding = '8px 0';
+        emptyDiv.textContent = '—';
+        td.appendChild(emptyDiv);
+      } else {
+        var who = document.createElement('div');
+        who.className = 'pitch-who';
+        who.textContent = roster[pitcherIdx].name.split(' ')[0];
+        td.appendChild(who);
+
+        var input = document.createElement('input');
+        input.type = 'number';
+        input.min = '0';
+        input.max = '60';
+        input.className = 'pitch-input';
+        input.placeholder = '0';
+        input.value = pitchCounts[inn][pitcherIdx] || '';
+        input.dataset.player = pitcherIdx;
+        input.dataset.inning = inn;
+
+        input.addEventListener('focus', function(e){
+          e.target.dataset.snapshotted = '';
+        });
+
+        input.addEventListener('input', function(e){
+          var pi = parseInt(e.target.dataset.player, 10);
+          var ii = parseInt(e.target.dataset.inning, 10);
+          if(!e.target.dataset.snapshotted){
+            snapshotForUndo();
+            e.target.dataset.snapshotted = '1';
+          }
+          var val = parseInt(e.target.value, 10);
+          pitchCounts[ii][pi] = isNaN(val) || val < 0 ? 0 : val;
+          runAllChecks();
+        });
+
+        td.appendChild(input);
+      }
+
+      tr.appendChild(td);
+    }
+
+    els.pitchFoot.appendChild(tr);
+  }
+
+  // ---------- DUGOUT MODE (mobile inning-first view) ----------
+  function clampDugoutInning(){
+    if(currentDugoutInning < 0) currentDugoutInning = 0;
+    if(currentDugoutInning > INNINGS - 1) currentDugoutInning = INNINGS - 1;
+  }
+
+  function inningHasIssue(inn){
+    // quick check: any conflict, ineligible, or locked select in this inning, based on current lineup state
+    var posCounts = {};
+    for(var i = 0; i < roster.length; i++){
+      var val = lineup[inn][i];
+      if(val !== 'BENCH') posCounts[val] = (posCounts[val] || 0) + 1;
+    }
+    for(var i2 = 0; i2 < roster.length; i2++){
+      var p = roster[i2];
+      var val2 = lineup[inn][i2];
+      if(val2 === 'BENCH') continue;
+      if(posCounts[val2] > 1) return true;
+      if(p.positions.length > 0 && p.positions.indexOf(val2) === -1) return true;
+      if(val2 === 'P' && inningsCaughtBefore(i2, inn) >= 4) return true;
+      if(val2 === 'C' && pitchesBefore(i2, inn) >= 21) return true;
+      if(val2 === 'P' && inn > 0 && lineup[inn-1][i2] !== 'P' && pitchedInAnyEarlierInning(i2, inn)) return true;
+    }
+    return false;
+  }
+
+  function renderDugoutMode(){
+    if(roster.length === 0) return;
+    clampDugoutInning();
+    var inn = currentDugoutInning;
+
+    els.inningTitle.textContent = 'Inning ' + (inn + 1);
+    els.prevInningBtn.disabled = (inn === 0);
+    els.nextInningBtn.disabled = (inn === INNINGS - 1);
+
+    // dots
+    els.inningDots.innerHTML = '';
+    for(var d = 0; d < INNINGS; d++){
+      var dot = document.createElement('button');
+      dot.className = 'inning-dot' + (d === inn ? ' active' : '') + (inningHasIssue(d) ? ' has-issue' : '');
+      dot.setAttribute('aria-label', 'Go to inning ' + (d+1));
+      dot.dataset.inning = d;
+      dot.addEventListener('click', function(e){
+        currentDugoutInning = parseInt(e.currentTarget.dataset.inning, 10);
+        renderDugoutMode();
+      });
+      els.inningDots.appendChild(dot);
+    }
+
+    // pitcher spotlight
+    var pitcherIdx = -1;
+    for(var i = 0; i < roster.length; i++){
+      if(lineup[inn][i] === 'P'){ pitcherIdx = i; break; }
+    }
+
+    if(pitcherIdx === -1){
+      els.pitcherSpotlight.className = 'pitcher-spotlight empty';
+      els.pitcherSpotlight.innerHTML = 'No pitcher assigned for this inning yet.';
+    } else {
+      var p = roster[pitcherIdx];
+      var limit = pitchLimitFor(p.leagueAge);
+      var total = pitchesTotal(pitcherIdx);
+      var isOver = total >= limit;
+      var isNear = !isOver && total >= limit - 10;
+      var thisInningCount = pitchCounts[inn][pitcherIdx] || 0;
+
+      els.pitcherSpotlight.className = 'pitcher-spotlight';
+      var html = '';
+      html += '<div class="ps-row">';
+      html += '<div><div class="ps-label">On The Mound</div><div class="ps-name">' + p.name + '</div></div>';
+      html += '<div class="ps-count-wrap"><div><div class="ps-count' + (isOver ? ' is-over' : (isNear ? ' is-near' : '')) + '" id="ps-count-num">' + total + '</div><div class="ps-limit">of ' + limit + ' today</div></div></div>';
+      html += '</div>';
+      html += '<div class="ps-input-row"><label for="ps-pitch-field">Pitches this inning</label><input type="number" min="0" max="60" id="ps-pitch-field" class="ps-pitch-input" value="' + (thisInningCount || '') + '" placeholder="0"></div>';
+
+      if(isOver){
+        html += '<div class="ps-warn">⛔ Over daily limit — must come off the mound now.</div>';
+      } else if(isNear){
+        html += '<div class="ps-warn">⚑ Approaching limit — line up the next pitcher.</div>';
+      }
+      var caught = inningsCaughtBefore(pitcherIdx, inn);
+      if(caught >= 4){
+        html += '<div class="ps-warn">⛔ Caught 4+ innings today — not eligible to pitch.</div>';
+      }
+
+      els.pitcherSpotlight.innerHTML = html;
+
+      var pitchField = document.getElementById('ps-pitch-field');
+      pitchField.addEventListener('focus', function(){
+        spotlightEditSnapshotted = false;
+      });
+      pitchField.addEventListener('input', function(e){
+        if(!spotlightEditSnapshotted){
+          snapshotForUndo();
+          spotlightEditSnapshotted = true;
+        }
+        var val = parseInt(e.target.value, 10);
+        pitchCounts[inn][pitcherIdx] = isNaN(val) || val < 0 ? 0 : val;
+
+        // live-update just the big total number, without re-rendering the input itself
+        var newTotal = pitchesTotal(pitcherIdx);
+        var newIsOver = newTotal >= limit;
+        var newIsNear = !newIsOver && newTotal >= limit - 10;
+        var countEl = document.getElementById('ps-count-num');
+        if(countEl){
+          countEl.textContent = newTotal;
+          countEl.className = 'ps-count' + (newIsOver ? ' is-over' : (newIsNear ? ' is-near' : ''));
+        }
+
+        renderPitchRow();
+        refreshCellStyles();
+        var posMessages = checkPositionConflicts();
+        var lockMessages = applyLockoutsAndCollect();
+        renderPitcherSummary();
+        var sitMessages = renderSitTable();
+        updateTicker(posMessages.concat(lockMessages), sitMessages);
+        // Note: deliberately not calling renderDugoutMode() here to avoid
+        // rebuilding this input mid-keystroke and losing cursor focus.
+      });
+    }
+
+    // player cards
+    els.dugoutCardList.innerHTML = '';
+    roster.forEach(function(p, pIdx){
+      var card = document.createElement('div');
+      var assignment = lineup[inn][pIdx];
+      var flagText = '';
+
+      var posCounts = {};
+      for(var k = 0; k < roster.length; k++){
+        var v = lineup[inn][k];
+        if(v !== 'BENCH') posCounts[v] = (posCounts[v] || 0) + 1;
+      }
+
+      var isConflict = assignment !== 'BENCH' && posCounts[assignment] > 1;
+      var isIneligible = assignment !== 'BENCH' && p.positions.length > 0 && p.positions.indexOf(assignment) === -1;
+      var isLocked = false;
+      if(assignment === 'P' && inningsCaughtBefore(pIdx, inn) >= 4){ isLocked = true; flagText = 'Caught 4+ innings — cannot pitch'; }
+      if(assignment === 'C' && pitchesBefore(pIdx, inn) >= 21){ isLocked = true; flagText = 'Threw 21+ pitches — cannot catch'; }
+      if(assignment === 'P' && inn > 0 && lineup[inn-1][pIdx] !== 'P' && pitchedInAnyEarlierInning(pIdx, inn)){ isLocked = true; flagText = 'Already removed from mound — cannot return to pitch'; }
+      if(isConflict && !flagText) flagText = 'Double-booked at ' + assignment;
+      if(isIneligible && !flagText) flagText = 'Not a listed position for ' + p.name.split(' ')[0];
+
+      card.className = 'dugout-card' + (assignment === 'BENCH' ? ' is-bench' : '') + ((isLocked || isConflict || isIneligible) ? ' has-flag' : '');
+
+      var top = document.createElement('div');
+      top.className = 'dc-top';
+      var badge = document.createElement('span');
+      badge.className = 'num-badge';
+      badge.style.background = TIER_COLORS[p.tier] || 'var(--field)';
+      badge.textContent = p.number || '–';
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'dc-name';
+      nameSpan.textContent = p.name;
+      top.appendChild(badge);
+      top.appendChild(nameSpan);
+      if(flagText){
+        var flagSpan = document.createElement('span');
+        flagSpan.className = 'dc-flag-text';
+        flagSpan.textContent = '⚑';
+        top.appendChild(flagSpan);
+      }
+      card.appendChild(top);
+
+      var select = document.createElement('select');
+      select.className = 'dc-select' + (assignment === 'BENCH' ? ' s-bench' : '') + (isLocked ? ' s-locked' : ((isConflict || isIneligible) ? ' s-conflict' : ''));
+      select.disabled = !p.eligible;
+      select.dataset.player = pIdx;
+      select.dataset.inning = inn;
+
+      var benchOpt = document.createElement('option');
+      benchOpt.value = 'BENCH';
+      benchOpt.textContent = 'Bench';
+      select.appendChild(benchOpt);
+
+      POSITIONS.forEach(function(pos){
+        var opt = document.createElement('option');
+        opt.value = pos;
+        opt.textContent = (p.positions.indexOf(pos) === -1) ? (pos + ' ⚠') : pos;
+        select.appendChild(opt);
+      });
+      select.value = assignment;
+
+      select.addEventListener('change', function(e){
+        var pi = parseInt(e.target.dataset.player, 10);
+        var ii = parseInt(e.target.dataset.inning, 10);
+        snapshotForUndo();
+        lineup[ii][pi] = e.target.value;
+        if(e.target.value !== 'P'){
+          pitchCounts[ii][pi] = 0;
+        }
+        renderLineup();
+        renderDugoutMode();
+      });
+
+      card.appendChild(select);
+
+      if(!p.eligible){
+        var meta = document.createElement('div');
+        meta.className = 'dc-meta';
+        meta.textContent = 'Not eligible today';
+        card.appendChild(meta);
+      } else if(flagText){
+        var meta2 = document.createElement('div');
+        meta2.className = 'dc-meta';
+        meta2.style.color = 'var(--red)';
+        meta2.style.fontWeight = '600';
+        meta2.textContent = flagText;
+        card.appendChild(meta2);
+      }
+
+      els.dugoutCardList.appendChild(card);
+    });
+  }
+
+  // ---------- ALL CHECKS: cell styling + ticker + pitcher summary + sit table ----------
+  function runAllChecks(){
+    refreshCellStyles();
+    var posMessages = checkPositionConflicts();
+    var lockMessages = applyLockoutsAndCollect();
+    renderPitcherSummary();
+    var sitMessages = renderSitTable();
+    updateTicker(posMessages.concat(lockMessages), sitMessages);
+    if(els.dugoutPanel.style.display !== 'none'){
+      renderDugoutMode();
+    }
+  }
+
+  function refreshCellStyles(){
+    var selects = els.lineupBody.querySelectorAll('select.slot-select');
+    var inningPosCounts = [];
+    for(var i = 0; i < INNINGS; i++) inningPosCounts.push({});
+
+    selects.forEach(function(sel){
+      var inn = parseInt(sel.dataset.inning, 10);
+      var val = sel.value;
+      if(val !== 'BENCH'){
+        inningPosCounts[inn][val] = (inningPosCounts[inn][val] || 0) + 1;
+      }
+    });
+
+    selects.forEach(function(sel){
+      var pIdx = parseInt(sel.dataset.player, 10);
+      var inn = parseInt(sel.dataset.inning, 10);
+      var val = sel.value;
+      var player = roster[pIdx];
+
+      sel.classList.remove('s-bench','s-conflict','s-ineligible','s-locked');
+
+      if(val === 'BENCH'){
+        sel.classList.add('s-bench');
+        return;
+      }
+
+      var isConflict = inningPosCounts[inn][val] > 1;
+      var isIneligible = player.positions.length > 0 && player.positions.indexOf(val) === -1;
+
+      if(isConflict || isIneligible){
+        sel.classList.add(isConflict ? 's-conflict' : 's-ineligible');
+      }
+    });
+  }
+
+  function checkPositionConflicts(){
+    var messages = [];
+    var selects = els.lineupBody.querySelectorAll('select.slot-select');
+    var inningPosCounts = [];
+    var inningPosPlayers = [];
+    for(var i = 0; i < INNINGS; i++){ inningPosCounts.push({}); inningPosPlayers.push({}); }
+
+    selects.forEach(function(sel){
+      var inn = parseInt(sel.dataset.inning, 10);
+      var val = sel.value;
+      if(val !== 'BENCH'){
+        inningPosCounts[inn][val] = (inningPosCounts[inn][val] || 0) + 1;
+        inningPosPlayers[inn][val] = inningPosPlayers[inn][val] || [];
+        inningPosPlayers[inn][val].push(roster[parseInt(sel.dataset.player,10)].name);
+      }
+    });
+
+    for(var inn = 0; inn < INNINGS; inn++){
+      Object.keys(inningPosCounts[inn]).forEach(function(pos){
+        if(inningPosCounts[inn][pos] > 1){
+          messages.push('Inning ' + (inn+1) + ': ' + inningPosPlayers[inn][pos].join(' & ') + ' are both at ' + pos);
+        }
+      });
+    }
+
+    var ineligibleCount = 0;
+    selects.forEach(function(sel){
+      var pIdx = parseInt(sel.dataset.player, 10);
+      var val = sel.value;
+      var player = roster[pIdx];
+      if(val !== 'BENCH' && player.positions.length > 0 && player.positions.indexOf(val) === -1){
+        ineligibleCount++;
+      }
+    });
+    if(ineligibleCount > 0){
+      messages.push(ineligibleCount + ' slot' + (ineligibleCount > 1 ? 's' : '') + ' assigned outside a player\'s listed positions');
+    }
+
+    return messages;
+  }
+
+  // Catcher/pitcher lockout per SPLL Regulation VI(a):
+  // - A player who caught 4+ innings that day is not eligible to pitch that day.
+  // - A player who pitched 21+ pitches that day may not (re-)enter the catcher position that day.
+  // - A pitcher once removed from the mound cannot return to pitch (Reg VI(b)).
+  function applyLockoutsAndCollect(){
+    var messages = [];
+
+    roster.forEach(function(p, pIdx){
+      var wasRemovedFromMound = false;
+
+      for(var inn = 0; inn < INNINGS; inn++){
+        var assignment = lineup[inn][pIdx];
+        var selects = els.lineupBody.querySelectorAll('select.slot-select[data-player="' + pIdx + '"][data-inning="' + inn + '"]');
+        var sel = selects[0];
+        if(!sel) continue;
+
+        // Catcher lockout: if already caught 4+ innings BEFORE this inning, can't pitch
+        var caughtBefore = inningsCaughtBefore(pIdx, inn);
+        if(assignment === 'P' && caughtBefore >= 4){
+          sel.classList.add('s-locked');
+          messages.push(p.name + ' caught 4+ innings — cannot pitch (Inning ' + (inn+1) + ')');
+        }
+
+        // Pitcher lockout: if already threw 21+ pitches total before this inning, can't catch
+        var pitchesBeforeThis = pitchesBefore(pIdx, inn);
+        if(assignment === 'C' && pitchesBeforeThis >= 21){
+          sel.classList.add('s-locked');
+          messages.push(p.name + ' threw 21+ pitches — cannot catch (Inning ' + (inn+1) + ')');
+        }
+
+        // Once removed from mound, cannot return to pitch
+        if(assignment === 'P'){
+          if(wasRemovedFromMound){
+            sel.classList.add('s-locked');
+            messages.push(p.name + ' was already removed from the mound — cannot return to pitch (Inning ' + (inn+1) + ')');
+          }
+        } else {
+          // if they pitched in some earlier inning and are not pitching now, they've been "removed"
+          if(pitchedInAnyEarlierInning(pIdx, inn+1) && lineup[inn][pIdx] !== 'P' && pitchedAnyBefore(pIdx, inn)){
+            wasRemovedFromMound = true;
+          }
+        }
+
+        // detect removal precisely: if pitched in inning inn-1 or earlier and not pitching in inn
+        if(inn > 0 && lineup[inn-1][pIdx] === 'P' && assignment !== 'P'){
+          wasRemovedFromMound = true;
+        }
+      }
+    });
+
+    function pitchedAnyBefore(pIdx, uptoInningExclusive){
+      for(var k = 0; k < uptoInningExclusive; k++){
+        if(lineup[k][pIdx] === 'P') return true;
+      }
+      return false;
+    }
+
+    return messages;
+  }
+
+  // ---------- PITCHER SUMMARY PANEL ----------
+  function renderPitcherSummary(){
+    els.pitcherSummary.innerHTML = '';
+    var anyPitcherUsed = false;
+
+    roster.forEach(function(p, pIdx){
+      var total = pitchesTotal(pIdx);
+      var everPitched = false;
+      for(var k = 0; k < INNINGS; k++){ if(lineup[k][pIdx] === 'P') everPitched = true; }
+      if(!everPitched) return;
+
+      anyPitcherUsed = true;
+      var limit = pitchLimitFor(p.leagueAge);
+      var pct = Math.min(100, Math.round((total / limit) * 100));
+      var isOver = total >= limit;
+      var isNear = !isOver && total >= limit - 10;
+
+      var card = document.createElement('div');
+      card.className = 'summary-card' + (isOver ? ' is-over' : (isNear ? ' is-near' : ''));
+
+      var head = document.createElement('div');
+      head.className = 'sc-head';
+      head.innerHTML = '<span class="sc-name">' + p.name + '</span><span class="sc-count">' + total + ' / ' + limit + '</span>';
+      card.appendChild(head);
+
+      var bar = document.createElement('div');
+      bar.className = 'sc-bar';
+      var fill = document.createElement('div');
+      fill.className = 'sc-bar-fill';
+      fill.style.width = pct + '%';
+      bar.appendChild(fill);
+      card.appendChild(bar);
+
+      var noteText = 'League age ' + p.leagueAge + ' · limit ' + limit + '/day.';
+      var caught = inningsCaughtTotal(pIdx);
+      if(caught > 0){
+        noteText += ' Caught ' + caught + ' inning' + (caught > 1 ? 's' : '') + ' today.';
+      }
+      if(isOver){
+        noteText = '<b>Over daily limit — must be removed from the mound.</b> ' + noteText;
+      } else if(isNear){
+        noteText = '<b>Approaching limit</b> — plan the next pitcher. ' + noteText;
+      }
+
+      var note = document.createElement('div');
+      note.className = 'sc-note';
+      note.innerHTML = noteText;
+      card.appendChild(note);
+
+      els.pitcherSummary.appendChild(card);
+    });
+
+    if(!anyPitcherUsed){
+      var empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.style.gridColumn = '1 / -1';
+      empty.textContent = 'No pitchers assigned yet — set a player to P in the grid above to start tracking pitch counts.';
+      els.pitcherSummary.appendChild(empty);
+    }
+  }
+
+  // ---------- SIT-RULE TABLE ----------
+  function renderSitTable(){
+    els.sitBody.innerHTML = '';
+    var messages = [];
+
+    roster.forEach(function(p, pIdx){
+      if(!p.eligible) return;
+
+      var played = 0;
+      var longestStreak = 0;
+      var currentStreak = 0;
+      for(var inn = 0; inn < INNINGS; inn++){
+        if(lineup[inn][pIdx] === 'BENCH'){
+          currentStreak++;
+          longestStreak = Math.max(longestStreak, currentStreak);
+        } else {
+          played++;
+          currentStreak = 0;
+        }
+      }
+
+      var violates = longestStreak > 1;
+
+      var tr = document.createElement('tr');
+      if(violates) tr.classList.add('sit-warn');
+
+      var tdName = document.createElement('td');
+      tdName.textContent = p.name;
+      tdName.style.fontWeight = '600';
+
+      var tdPlayed = document.createElement('td');
+      tdPlayed.textContent = played + ' / ' + INNINGS;
+
+      var tdStreak = document.createElement('td');
+      tdStreak.textContent = longestStreak + ' inning' + (longestStreak === 1 ? '' : 's');
+
+      var tdStatus = document.createElement('td');
+      if(violates){
+        tdStatus.innerHTML = '<span class="mini-pill bad">Sits 2+ in a row</span>';
+        messages.push(p.name + ' is benched ' + longestStreak + ' innings in a row');
+      } else {
+        tdStatus.innerHTML = '<span class="mini-pill ok">OK</span>';
+      }
+
+      tr.appendChild(tdName);
+      tr.appendChild(tdPlayed);
+      tr.appendChild(tdStreak);
+      tr.appendChild(tdStatus);
+      els.sitBody.appendChild(tr);
+
+      // update the inline sub-note under the player's name in the grid too
+      var subEl = els.lineupBody.querySelector('[data-role="sub-' + pIdx + '"]');
+      if(subEl){
+        var bits = [];
+        bits.push(played + '/' + INNINGS + ' innings');
+        if(violates){
+          bits.push('<span class="warn-text">sits ' + longestStreak + ' in a row</span>');
+        }
+        subEl.innerHTML = bits.join(' · ');
+      }
+    });
+
+    return messages;
+  }
+
+  // ---------- TICKER ----------
+  function updateTicker(ruleMessages, sitMessages){
+    if(roster.length === 0){
+      els.ticker.className = 'ticker clear';
+      els.ticker.innerHTML = '<span class="flag">✓</span><span class="ticker-text">No lineup yet — upload your roster CSV below to get started.</span>';
+      return;
+    }
+
+    var allMessages = ruleMessages.concat(sitMessages);
+    var hasLockoutOrSit = ruleMessages.some(function(m){ return m.indexOf('cannot') !== -1; }) || sitMessages.length > 0;
+
+    if(allMessages.length === 0){
+      els.ticker.className = 'ticker clear';
+      els.ticker.innerHTML = '<span class="flag">✓</span><span class="ticker-text">No conflicts — every inning is clean.</span>';
+    } else if(hasLockoutOrSit){
+      els.ticker.className = 'ticker danger';
+      els.ticker.innerHTML = '<span class="flag">⛔</span><span class="ticker-text"><b>' + allMessages.length + ' issue' + (allMessages.length > 1 ? 's' : '') + ':</b> ' + allMessages.slice(0,3).join(' · ') + (allMessages.length > 3 ? ' · …' : '') + '</span>';
+    } else {
+      els.ticker.className = 'ticker warn';
+      els.ticker.innerHTML = '<span class="flag">⚑</span><span class="ticker-text"><b>' + allMessages.length + ' issue' + (allMessages.length > 1 ? 's' : '') + ':</b> ' + allMessages.slice(0,3).join(' · ') + (allMessages.length > 3 ? ' · …' : '') + '</span>';
+    }
+  }
+
+  // ---------- AUTO FILL (simple greedy suggestion, respects lockouts) ----------
+  els.autoFillBtn.addEventListener('click', function(){
+    if(roster.length === 0) return;
+    if(!confirm('This will overwrite your current lineup and pitch counts with a suggested fill. You can undo afterward if needed. Continue?')) return;
+
+    snapshotForUndo();
+    lineup = buildEmptyLineup(roster.length);
+    pitchCounts = buildEmptyPitchCounts(roster.length);
+    var eligibleIdx = [];
+    roster.forEach(function(p, i){ if(p.eligible) eligibleIdx.push(i); });
+
+    var lastPitcher = -1;
+
+    for(var inn = 0; inn < INNINGS; inn++){
+      var available = eligibleIdx.slice();
+      var assignedThisInning = {};
+
+      // Pitcher first: prefer the same pitcher if not yet locked out, else rotate to someone eligible
+      var pitcherCandidates = available.filter(function(i){
+        return roster[i].positions.indexOf('P') !== -1
+          && inningsCaughtBefore(i, inn) < 4;
+      });
+
+      // keep same pitcher going if they haven't been removed and aren't over a soft cap (60 assumed pitches/inning estimate not tracked here, so just rotate every 2 innings as a reasonable default)
+      var chosenPitcher = -1;
+      if(lastPitcher !== -1 && pitcherCandidates.indexOf(lastPitcher) !== -1 && inn > 0 && lineup[inn-1][lastPitcher] === 'P' && (inn % 2 !== 0)){
+        chosenPitcher = lastPitcher;
+      } else if(pitcherCandidates.length > 0){
+        pitcherCandidates.sort(function(a,b){
+          return parseInt(roster[a].tier,10) - parseInt(roster[b].tier,10);
+        });
+        chosenPitcher = pitcherCandidates.filter(function(i){ return i !== lastPitcher || inn === 0; })[0] !== undefined
+          ? pitcherCandidates.filter(function(i){ return i !== lastPitcher || inn === 0; })[0]
+          : pitcherCandidates[0];
+      }
+
+      if(chosenPitcher !== -1){
+        lineup[inn][chosenPitcher] = 'P';
+        assignedThisInning[chosenPitcher] = true;
+        lastPitcher = chosenPitcher;
+      }
+
+      POSITIONS.forEach(function(pos){
+        if(pos === 'P') return; // handled above
+        var candidates = available.filter(function(i){
+          if(assignedThisInning[i]) return false;
+          if(roster[i].positions.indexOf(pos) === -1) return false;
+          // catcher lockout: can't catch if 21+ pitches already thrown today
+          if(pos === 'C' && pitchesBefore(i, inn) >= 21) return false;
+          return true;
+        });
+        if(candidates.length === 0) return;
+
+        candidates.sort(function(a,b){
+          var aPlayed = countInnings(a, inn);
+          var bPlayed = countInnings(b, inn);
+          if(aPlayed !== bPlayed) return aPlayed - bPlayed;
+          return parseInt(roster[a].tier,10) - parseInt(roster[b].tier,10);
+        });
+
+        var chosen = candidates[0];
+        lineup[inn][chosen] = pos;
+        assignedThisInning[chosen] = true;
+      });
+    }
+
+    function countInnings(playerIdx, uptoInning){
+      var c = 0;
+      for(var k = 0; k < uptoInning; k++){
+        if(lineup[k][playerIdx] !== 'BENCH') c++;
+      }
+      return c;
+    }
+
+    renderLineup();
+  });
+
+  els.resetGridBtn.addEventListener('click', function(){
+    if(roster.length === 0) return;
+    if(!confirm('Reset the lineup grid and pitch counts back to all bench? You can undo afterward if needed.')) return;
+    snapshotForUndo();
+    lineup = buildEmptyLineup(roster.length);
+    pitchCounts = buildEmptyPitchCounts(roster.length);
+    renderLineup();
+  });
+
+  els.printBtn.addEventListener('click', function(){
+    window.print();
+  });
+
+  // ---------- DUGOUT MODE NAV ----------
+  els.dugoutModeBtn.addEventListener('click', function(){
+    if(roster.length === 0) return;
+    currentDugoutInning = 0;
+    els.dugoutPanel.style.display = 'block';
+    renderDugoutMode();
+    els.dugoutPanel.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  els.exitDugoutBtn.addEventListener('click', function(){
+    els.dugoutPanel.style.display = 'none';
+  });
+
+  els.prevInningBtn.addEventListener('click', function(){
+    if(currentDugoutInning > 0){
+      currentDugoutInning--;
+      renderDugoutMode();
+    }
+  });
+
+  els.nextInningBtn.addEventListener('click', function(){
+    if(currentDugoutInning < INNINGS - 1){
+      currentDugoutInning++;
+      renderDugoutMode();
+    }
+  });
+
+  // ---------- UNDO ----------
+  els.undoBtn.addEventListener('click', function(){
+    performUndo();
+  });
+  els.dugoutUndoBtn.addEventListener('click', function(){
+    performUndo();
+  });
+
+  // ---------- SHARE TO PHONE ----------
+  els.shareToPhoneBtn.addEventListener('click', function(){
+    if(roster.length === 0){
+      alert('Upload a roster first, then your share link will include it.');
+      return;
+    }
+    var url = currentShareUrl();
+    els.shareLinkText.value = url;
+    els.shareCopyConfirm.classList.remove('show');
+
+    if(window.location.protocol === 'file:'){
+      els.shareFileWarning.style.display = 'block';
+    } else {
+      els.shareFileWarning.style.display = 'none';
+    }
+
+    els.shareOverlay.style.display = 'flex';
+    els.shareLinkText.focus();
+    els.shareLinkText.select();
+  });
+
+  els.shareCloseBtn.addEventListener('click', function(){
+    els.shareOverlay.style.display = 'none';
+  });
+
+  els.shareOverlay.addEventListener('click', function(e){
+    if(e.target === els.shareOverlay){
+      els.shareOverlay.style.display = 'none';
+    }
+  });
+
+  els.copyShareLinkBtn.addEventListener('click', function(){
+    els.shareLinkText.focus();
+    els.shareLinkText.select();
+    var copied = false;
+    try{
+      copied = document.execCommand('copy');
+    } catch(err){
+      copied = false;
+    }
+    if(!copied && navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(els.shareLinkText.value).then(function(){
+        els.shareCopyConfirm.classList.add('show');
+        setTimeout(function(){ els.shareCopyConfirm.classList.remove('show'); }, 2000);
+      });
+      return;
+    }
+    if(copied){
+      els.shareCopyConfirm.classList.add('show');
+      setTimeout(function(){ els.shareCopyConfirm.classList.remove('show'); }, 2000);
+    }
+  });
+
+  // ---------- HEADER META ----------
+  els.teamNameInput.addEventListener('input', function(){
+    var v = els.teamNameInput.value.trim();
+    els.teamNameDisplay.textContent = v ? (v + ' Lineup Card') : 'Little League Lineup Builder';
+  });
+
+  // ---------- LOAD SHARED LINEUP FROM URL, IF PRESENT ----------
+  checkUrlForSharedLineup();
+
+})();
+</script>
+</body>
+</html>
